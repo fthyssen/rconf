@@ -36,7 +36,7 @@ requires = [
 
 [tool.setuptools]
 [tool.setuptools_scm]
-fallback_version = "0.1b"
+fallback_version = "0.0.1b"
 
 [tool.black]
 target-version = ["py37", "py38", "py39", "py310", "py311", "py312"]
