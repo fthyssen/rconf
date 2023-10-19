@@ -3,6 +3,7 @@ name = "rconf"
 description = "Extensible Python package to resolve references and apply patches in JSON and TOML configurations"
 readme = "readme.rst"
 requires-python = ">=3.7"
+license.file = "LICENSE"
 authors = [{ name = "Filip Thyssen", email = "filip.thyssen@gmail.com" }]
 keywords = ["toml", "json", "reference", "pointer", "patch", "configuration"]
 classifiers = [
