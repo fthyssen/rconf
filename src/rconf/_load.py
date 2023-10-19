@@ -366,6 +366,13 @@ class Loader:
                     for patch_key, patch_value in value.items():
                         patch.add("=", patch_key, patch_value)
                     replacement = patch.apply(replacement)
+                    # prepare patched value for other references
+                    value.clear()
+                    value["$ref"] = [
+                        src_handler,
+                        replacement,
+                        src_handler.pointer_type(),
+                    ]
                 parent[key] = replacement
 
         return result[0]
