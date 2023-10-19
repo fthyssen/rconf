@@ -24,7 +24,7 @@ copyright_statememt = (
 )
 copyright = copyright_statememt  # noqa: A001
 release = version("rconf")
-version = ".".join(release.split(".")[:2])
+version = ".".join(release.split(".")[:3])
 
 # General configuration
 extensions = [
