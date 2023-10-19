@@ -1,8 +1,9 @@
 name: Build and publish Python distribution packages to PyPI
 
 on:
-  release:
-    types: [published]
+  push:
+    tags:
+      - "v*.*.*"
 
 permissions:
   contents: read
@@ -33,12 +34,12 @@ jobs:
     name: Publish to PyPI
     needs:
       - build
-    runs-on: ubuntu-latest
     environment:
       name: pypi
       url: https://pypi.org/p/rconf
     permissions:
       id-token: write
+    runs-on: ubuntu-latest
     steps:
       - name: Download all the distribution packages
         uses: actions/download-artifact@v3
@@ -47,3 +48,43 @@ jobs:
           path: dist/
       - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
+
+  github-release:
+    name: Publish to GitHub
+    needs:
+      - publish
+    permissions:
+      contents: write
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Release
+        uses: softprops/action-gh-release@v1
+
+  build-doc:
+    name: Build documentation
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run the build-docs script
+        run: bash scripts/build-docs.sh
+      - name: Upload static HTML files
+        uses: actions/upload-pages-artifact@v2
+        with:
+          path: docs/_build/html
+
+  publish-doc:
+    name: Publish documentation
+    needs:
+      - build-doc
+      - publish
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    permissions:
+      id-token: write
+      pages: write
+    runs-on: ubuntu-latest
+    steps:
+      - name: Publish to GitHub Pages
+        uses: actions/deploy-pages@v2
