@@ -8,12 +8,17 @@ dropping the requirement that
 the target location must exist for the operation to be successful.
 It also allows appending to an array with key ``-``.
 
+Operation *merge* has been added to
+merge an object into an object
+or extend an array with an array.
+When merging objects, existing keys will be replaced.
+
 A shorthand notation is also supported,
 using an array (:class:`list`) instead of an object (:class:`dict`) per operation.
 
 A shorthand :class:`list` consists of
 
-- a shorthand *op* (``+-@<$?=``),
+- a shorthand *op* (``+-@<$?=&``),
 - a *path* and
 - a *from* or *value* field if relevant, depending on the operation.
 
@@ -27,6 +32,7 @@ A shorthand :class:`list` consists of
      copy   ``$``     *from*
      test   ``?``     *value*
    assign   ``=``     *value*
+    merge   ``&``     *value*
 ========== ========= =============
 
 Operations are applied in order of appearance.

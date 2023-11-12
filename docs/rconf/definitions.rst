@@ -134,6 +134,11 @@ dropping the requirement that
 the target location must exist for the operation to be successful.
 It also allows appending to an array with key ``-``.
 
+Operation *merge* has been added to
+merge an object into an object
+or extend an array with an array.
+When merging objects, existing keys will be replaced.
+
 Three patch notations are allowed:
 
 An array of operation objects
@@ -149,7 +154,7 @@ Key/value-pair assignments
 
 Shorthand operation arrays each consist of
 
-- a shorthand *op* (``+-@<$?=``),
+- a shorthand *op* (``+-@<$?=&``),
 - a *path* and
 - a *from* or *value* field if relevant, depending on the operation.
 
@@ -164,6 +169,7 @@ Shorthand operation arrays each consist of
      copy   ``$``     *from*
      test   ``?``     *value*
    assign   ``=``     *value*
+    merge   ``&``     *value*
 ========== ========= =============
 
 The ``$patch`` array can contain a mix of

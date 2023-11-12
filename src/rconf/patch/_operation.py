@@ -8,7 +8,7 @@ from ._error import PatchKeyError
 class PatchOperationMeta(enum.EnumMeta):
     """:class:`enum.EnumMeta` for :class:`rconf.patch.PatchOperation`."""
 
-    SHORTHAND = "+-@<$?="
+    SHORTHAND = "+-@<$?=&"
 
     def __getitem__(self, name: str) -> PatchOperation:
         """Lower case and shorthand indexing for PatchOperation."""
@@ -36,6 +36,11 @@ class PatchOperation(enum.Enum, metaclass=PatchOperationMeta):
     `RFC 6902 section 4 <https://datatracker.ietf.org/doc/html/rfc6902#section-4>`_.
     Operation *assign* is added for convenience.
 
+    Operation *merge* has been added to
+    merge an object into an object
+    or extend an array with an array.
+    When merging objects, existing keys will be replaced.
+
     :class:`rconf.patch.PatchOperation` can be indexed with a full or shorthand name.
     """
 
@@ -46,6 +51,7 @@ class PatchOperation(enum.Enum, metaclass=PatchOperationMeta):
     COPY = 4  #: copy, shorthand ``$``
     TEST = 5  #: test, shorthand ``?``
     ASSIGN = 6  #: assign, shorthand ``=``
+    MERGE = 7  #: merge, shorthand ``&``
 
     def __str__(self) -> str:
         """Return a lower case string representation of the operation."""
@@ -64,6 +70,7 @@ MUST_EXIST = (
 
 MAY_APPEND = (
     PatchOperation.ASSIGN,
+    PatchOperation.MERGE,
     PatchOperation.ADD,
     PatchOperation.MOVE,
     PatchOperation.COPY,

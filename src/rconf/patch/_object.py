@@ -153,7 +153,24 @@ class PatchOperationObject:
                 raise PatchError(msg)
 
         # apply patch
-        if op == PatchOperation.ASSIGN:
+        if op == PatchOperation.MERGE:
+            if isinstance(parent, list) and key == len(parent):
+                parent.append(value)
+            elif isinstance(parent, dict) and key not in parent:
+                parent[key] = value
+            else:
+                target = parent[key]
+                if type(target) != type(value):
+                    msg = (
+                        f'Operation "merge" cannot be applied to path "{self.path}":'
+                        "the types don't match."
+                    )
+                    raise PatchValueError(msg)
+                if isinstance(target, list):
+                    target.extend(value)
+                else:
+                    target.update(value)
+        elif op == PatchOperation.ASSIGN:
             if isinstance(parent, list) and key == len(parent):
                 parent.append(value)
             else:

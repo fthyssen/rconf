@@ -24,7 +24,7 @@ optionally applying patches.
   `JSON Reference draft <https://datatracker.ietf.org/doc/html/draft-pbryan-zyp-json-ref-03>`_.
 - Reference patches are based on
   `RFC 6902 <https://datatracker.ietf.org/doc/html/rfc6902>`_,
-  extended with shorthand notations and an *assign* operation.
+  extended with shorthand notations, an *assign* and a *merge* operation.
 - JSON pointers follow
   `RFC 6901 <https://datatracker.ietf.org/doc/html/rfc6901>`_.
 - TOML pointers are
