@@ -22,7 +22,7 @@ class Patch:
 
     def __init__(
         self,
-        diff: list[PatchOperationObject | dict[str, Value] | list[Value]],
+        diff: list[PatchOperationObject | dict[str, Value] | list[Value]] | None = None,
         pointer_type: type[Pointer] = JSONPointer,
     ) -> None:
         """Build a :class:`rconf.patch.Patch`.
@@ -36,6 +36,10 @@ class Patch:
         """
         self._diff: list[PatchOperationObject] = []
         self.pointer_type = pointer_type
+
+        if diff is None:
+            return
+
         try:
             for op_obj in diff:
                 if isinstance(op_obj, PatchOperationObject):
