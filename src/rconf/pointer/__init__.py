@@ -9,8 +9,8 @@ with type-specific
 A :class:`rconf.pointer.Pointer` can be fully resolved
 for a :class:`rconf.Value` (:func:`rconf.pointer.Pointer.resolve`),
 or as far as possible (:func:`rconf.pointer.Pointer.reduce`).
-The keys in a reference object (containing ``$ref``)
-can be ignored by setting ``cross_ref=False``.
+Optionally, resolution can be stopped at mappings containing certain keys,
+for example ``stop_keys=("$ref",)``.
 
 :func:`rconf.pointer.traverse` implements post-order depth-first traversal
 of a :class:`rconf.Value`.

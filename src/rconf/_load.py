@@ -23,6 +23,13 @@ if typing.TYPE_CHECKING:
 _URL_SCHEME_RE = re.compile(r"^[a-zA-Z][a-zA-Z0-9+\-.]+:")
 
 
+class _Ref:
+    """Unique key."""
+
+
+REF_KEYS = ("$ref", _Ref)
+
+
 def _guess_url(locator: str | pathlib.Path | None = None) -> str:
     """Create a URL given a locator that can be a URL or a file path."""
     if locator is None:
@@ -250,18 +257,14 @@ class Loader:
             ],
         )
 
-        # avoid processing duplicates
-        duplicate_id: set[int] = set()
-
         # iterate over dicts, looking for references
         while url_handler_items:
             src_url, src_handler, src_items = url_handler_items[-1]
             try:
                 src_ptr, src_parent, src_key, src_value = next(src_items)
 
-                if "$ref" not in src_value or id(src_value) in duplicate_id:
+                if "$ref" not in src_value:
                     continue
-                # id is added below if the reference is not replaceable yet
 
                 if not isinstance(src_value["$ref"], str):
                     msg = (
@@ -288,7 +291,7 @@ class Loader:
                 )
                 _, _, target_value, target_ptr = ptr.reduce(
                     target_value,
-                    cross_ref=False,
+                    stop_keys=REF_KEYS,
                 )
                 if id(target_value) == id(src_value):
                     msg = f"A reference cannot point to itself ({target_url}#{ptr})."
@@ -300,32 +303,31 @@ class Loader:
                     traverse_key = src_key
                 else:
                     # list to traverse and apply potential patches in target
-                    traverse_parent = src_value["$ref"] = [
+                    traverse_parent = src_value[_Ref] = [
                         src_handler,
                         target_value,
                         target_ptr,
                     ]
+                    del src_value["$ref"]
                     traverse_key = 1
-                    duplicate_id.add(id(src_value))
 
                 # referenced content should also be processed
-                if id(target_value) not in duplicate_id:
-                    url_handler_items.append(
-                        (
-                            target_url,
-                            target_handler,
-                            iter(
-                                traverse(
-                                    target_value,
-                                    leafs=False,
-                                    lists=False,
-                                    parent=traverse_parent,
-                                    key=traverse_key,
-                                    pointer_type=target_handler.pointer_type,
-                                ),
+                url_handler_items.append(
+                    (
+                        target_url,
+                        target_handler,
+                        iter(
+                            traverse(
+                                target_value,
+                                leafs=False,
+                                lists=False,
+                                parent=traverse_parent,
+                                key=traverse_key,
+                                pointer_type=target_handler.pointer_type,
                             ),
                         ),
-                    )
+                    ),
+                )
             except StopIteration:
                 url_handler_items.pop()
 
@@ -338,16 +340,16 @@ class Loader:
             key=0,
             pointer_type=handler.pointer_type,
         ):
-            if "$ref" in value:
+            if _Ref in value:
                 src_handler: BaseHandler
                 src_value: Value
                 src_ptr: Pointer
-                src_handler, src_value, src_ptr = value["$ref"]
+                src_handler, src_value, src_ptr = value[_Ref]
                 replacement = src_ptr.resolve(src_value)
                 if len(value) > 1:
                     # avoid circular reference patching
                     if check_circular and any(
-                        "$ref" in child
+                        _Ref in child
                         for _, _, _, child in traverse(
                             replacement,
                             leafs=False,
@@ -360,7 +362,7 @@ class Loader:
                         value["$patch"] if "$patch" in value else [],
                         src_handler.pointer_type,
                     )
-                    del value["$ref"]
+                    del value[_Ref]
                     if "$patch" in value:
                         del value["$patch"]
                     for patch_key, patch_value in value.items():
@@ -368,7 +370,7 @@ class Loader:
                     replacement = patch.apply(replacement)
                     # prepare patched value for other references
                     value.clear()
-                    value["$ref"] = [
+                    value[_Ref] = [
                         src_handler,
                         replacement,
                         src_handler.pointer_type(),

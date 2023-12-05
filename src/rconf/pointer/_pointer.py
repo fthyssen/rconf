@@ -5,7 +5,7 @@ import typing
 from ._error import PointerLookupError
 
 if typing.TYPE_CHECKING:
-    from collections.abc import Iterator
+    from collections.abc import Iterable, Iterator
 
     try:
         # TODO: python-3.11
@@ -116,12 +116,12 @@ class Pointer:
         self,
         value: Value,
         *,
-        cross_ref: bool = True,
+        stop_keys: Iterable[Key] | None = None,
     ) -> Value:
         """Resolve the pointer in a configuration.
 
         :param value: The configuration.
-        :param cross_ref: Allow crossing ``$ref`` instances.
+        :param stop_keys: Don't cross a mapping if it contains any of the listed keys.
 
         :returns: The value.
 
@@ -130,7 +130,7 @@ class Pointer:
         """
         _, _, value, ptr = self.reduce(
             value,
-            cross_ref=cross_ref,
+            stop_keys=stop_keys,
         )
         if ptr:
             msg = (
@@ -146,14 +146,14 @@ class Pointer:
         *,
         parent: Value | None = None,
         key: Key | None = None,
-        cross_ref: bool = True,
+        stop_keys: Iterable[Key] | None = None,
     ) -> tuple[Value | None, Key | None, Value, Pointer]:
         """Reduce the pointer by following the path as far as possible.
 
         :param value: The configuration.
         :param parent: The parent of the target.
         :param key: The key for the target in ``parent``.
-        :param cross_ref: Allow crossing ``$ref`` instances.
+        :param stop_keys: Don't cross a mapping if it contains any of the listed keys.
 
         :returns: The reduced (parent, key, value, pointer) tuple.
         """
@@ -164,7 +164,10 @@ class Pointer:
 
         for idx, key in enumerate(self):
             if isinstance(value, dict):
-                if key not in value or (not cross_ref and "$ref" in value):
+                if key not in value or (
+                    stop_keys is not None
+                    and any(stop_key in value for stop_key in stop_keys)
+                ):
                     return (parent, parent_key, value, self[idx:])
             elif isinstance(value, (list, tuple)):
                 if isinstance(key, str) and key.isdecimal():
