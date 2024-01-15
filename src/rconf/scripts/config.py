@@ -122,6 +122,9 @@ def prepare_parser(parser: argparse.ArgumentParser) -> None:
         )
         subcommand.set_defaults(subcommand=command, subcommand_name=command_name)
     add_commands_epilog(parser, commands)
+    # TODO: python-3.11 (bpo-29298)
+    if sys.version_info < (3, 11):
+        commands.metavar = "{" + ",".join(commands.choices) + "}"
 
 
 def main(args: argparse.Namespace) -> None:
