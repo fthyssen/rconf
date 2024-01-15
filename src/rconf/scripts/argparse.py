@@ -45,7 +45,7 @@ class VersionAction(argparse.Action):
 
 def add_commands_epilog(
     parser: argparse.ArgumentParser,
-    commands: argparse._SubParsersAction,  # noqa: SLF001
+    commands: argparse._SubParsersAction,
 ) -> None:
     """Add epilog describing subcommands."""
     parser.formatter_class = argparse.RawDescriptionHelpFormatter
