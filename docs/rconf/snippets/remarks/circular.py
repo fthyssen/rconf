@@ -9,7 +9,7 @@ circular."$ref" = "#table"
 """
 
 config = rconf.loads(doc, media_type="toml")
-print(config)
+print("This works:", config)
 
 try:
     print(json.dumps(config, indent=4))

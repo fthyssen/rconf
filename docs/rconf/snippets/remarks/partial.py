@@ -10,7 +10,7 @@ icon."$ref" = "https://git INVALID hub.com/manifest.json#/icons/0"
 
 # No issues
 config = rconf.loads(doc, ptr="pypa_build", media_type="toml")
-print(json.dumps(config, indent=4))
+print("This works:", json.dumps(config, indent=4))
 
 # Raises InvalidURL
 try:

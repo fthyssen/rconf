@@ -10,7 +10,7 @@ import uuid
 from collections import deque
 
 from .decode import BaseHandler, DecodeError, DecoderDirector
-from .patch import Patch
+from .patch import Patch, PatchOperation
 from .pointer import Key, Pointer, traverse
 
 if typing.TYPE_CHECKING:
@@ -24,6 +24,10 @@ _URL_SCHEME_RE = re.compile(r"^[a-zA-Z][a-zA-Z0-9+\-.]+:")
 
 
 class _Ref:
+    """Unique key."""
+
+
+class _Missing:
     """Unique key."""
 
 
@@ -83,7 +87,6 @@ class Loader:
         url: str | pathlib.Path | None = None,
         *,
         ptr: str | None = None,
-        check_circular: bool = True,
         **kwargs,
     ) -> Value:
         """Decode a ``read``-supporting :term:`binary file` with references and patches.
@@ -94,7 +97,6 @@ class Loader:
         :param url: Assumed document URL or path
             for media type, fragment and relative reference resolution.
         :param ptr: Fragment pointer, overrides URL fragment.
-        :param check_circular: Verify that no circular references are patched.
         :param kwargs: Forwarded to :class:`rconf.decode.DecoderDirector`.
 
         :raises: :class:`rconf.decode.DecodeError` in case of decode errors,
@@ -103,7 +105,7 @@ class Loader:
         url = _url_ptr(_guess_url(url), ptr)
         handler = self.decoder.get_handler(media_type, url)
         init = handler.load(fp, url, **kwargs)
-        return self._load(init, url, handler, check_circular=check_circular, **kwargs)
+        return self._load(init, url, handler, **kwargs)
 
     def loads(
         self,
@@ -112,7 +114,6 @@ class Loader:
         url: str | pathlib.Path | None = None,
         *,
         ptr: str | None = None,
-        check_circular: bool = True,
         **kwargs,
     ) -> Value:
         """Decode a :class:`str` configuration document with references and patches.
@@ -123,7 +124,6 @@ class Loader:
         :param url: Assumed document URL or path
             for media type, fragment and relative reference resolution.
         :param ptr: Fragment pointer, overrides URL fragment.
-        :param check_circular: Verify that no circular references are patched.
         :param kwargs: Forwarded to :class:`rconf.decode.DecoderDirector`.
 
         :raises: :class:`rconf.decode.DecodeError` in case of decode errors,
@@ -132,7 +132,7 @@ class Loader:
         url = _url_ptr(_guess_url(url), ptr)
         handler = self.decoder.get_handler(media_type, url)
         init = handler.loads(s, url, **kwargs)
-        return self._load(init, url, handler, check_circular=check_circular, **kwargs)
+        return self._load(init, url, handler, **kwargs)
 
     def loadc(
         self,
@@ -141,7 +141,6 @@ class Loader:
         url: str | pathlib.Path | None = None,
         *,
         ptr: str | None = None,
-        check_circular: bool = True,
         **kwargs,
     ) -> Value:
         """Decode a configuration document with references and patches.
@@ -152,7 +151,6 @@ class Loader:
         :param url: Assumed document URL or path
             for media type, fragment and relative reference resolution.
         :param ptr: Fragment pointer, overrides URL fragment.
-        :param check_circular: Verify that no circular references are patched.
         :param kwargs: Forwarded to :class:`rconf.decode.DecoderDirector`.
 
         :raises: :class:`rconf.decode.DecodeError` in case of decode errors,
@@ -164,7 +162,6 @@ class Loader:
             copy.deepcopy(config),
             url,
             handler,
-            check_circular=check_circular,
             **kwargs,
         )
 
@@ -175,7 +172,6 @@ class Loader:
         *,
         base_url: str | pathlib.Path | None = None,
         ptr: str | None = None,
-        check_circular: bool = True,
         **kwargs,
     ) -> Value:
         """Decode a configuration document at a URL or path with references and patches.
@@ -188,7 +184,6 @@ class Loader:
         :param base_url: Assumed document URL or path
             for relative reference resolution, overrides URL base.
         :param ptr: Fragment pointer, overrides URL fragment.
-        :param check_circular: Verify that no circular references are patched.
         :param kwargs: Forwarded to :class:`rconf.decode.DecoderDirector`.
 
         :raises: :class:`rconf.decode.DecodeError` in case of decode errors,
@@ -204,15 +199,13 @@ class Loader:
                 ptr = urllib.parse.unquote(urllib.parse.urldefrag(url).fragment)
             url = _url_ptr(_guess_url(base_url), ptr)
 
-        return self._load(init, url, handler, check_circular=check_circular, **kwargs)
+        return self._load(init, url, handler, **kwargs)
 
     def _load(
         self,
         init: Value,
         url: str,
         handler: BaseHandler,
-        *,
-        check_circular: bool = True,
         **kwargs,
     ) -> Value:
         """Decode a configuration document at a URL with references and patches.
@@ -221,7 +214,6 @@ class Loader:
         :param url: Assumed document URL
             for fragment and relative reference resolution.
         :param handler: The :class:`BaseHandler` of the initial document.
-        :param check_circular: Verify that no circular references are patched.
         :param kwargs: Forwarded to :class:`rconf.decode.DecoderDirector`.
 
         :raises: :class:`rconf.decode.DecodeError` in case of decode errors,
@@ -237,7 +229,7 @@ class Loader:
 
         # traversal stack
         url_handler_items: deque[
-            tuple[str, BaseHandler, Iterator[tuple[Pointer, Value | None, Key, Value]]]
+            tuple[str, BaseHandler, Iterator[tuple[Pointer, Value, Key, Value]]]
         ] = deque(
             [
                 (
@@ -262,21 +254,24 @@ class Loader:
             src_url, src_handler, src_items = url_handler_items[-1]
             try:
                 src_ptr, src_parent, src_key, src_value = next(src_items)
+            except StopIteration:
+                url_handler_items.pop()
+                continue
 
-                if "$ref" not in src_value:
-                    continue
-
-                if not isinstance(src_value["$ref"], str):
+            # unvisited reference
+            src_ref = src_value.pop("$ref", _Missing)
+            if src_ref is not _Missing:
+                if not isinstance(src_ref, str):
                     msg = (
                         f'Error loading "{src_url}": {src_ptr/"$ref"} is not a string.'
                     )
                     raise DecodeError(msg)
-
                 # parse URL
                 target_url, target_fragment = urllib.parse.urldefrag(
-                    urllib.parse.urljoin(src_url, src_value["$ref"]),
+                    urllib.parse.urljoin(src_url, src_ref),
                 )
-
+                # parse patch
+                target_patch = _build_patch(src_value, src_handler.pointer_type)
                 # load document if needed
                 if target_url not in url_handler_value:
                     target_handler, target_value = self._open(target_url, **kwargs)
@@ -293,23 +288,9 @@ class Loader:
                     target_value,
                     stop_keys=REF_KEYS,
                 )
-                if id(target_value) == id(src_value):
-                    msg = f"A reference cannot point to itself ({target_url}#{ptr})."
-                    raise DecodeError(msg)
 
-                if not target_ptr and len(src_value) == 1:
-                    src_parent[src_key] = target_value
-                    traverse_parent = src_parent
-                    traverse_key = src_key
-                else:
-                    # list to traverse and apply potential patches in target
-                    traverse_parent = src_value[_Ref] = [
-                        src_handler,
-                        target_value,
-                        target_ptr,
-                    ]
-                    del src_value["$ref"]
-                    traverse_key = 1
+                src_value.clear()
+                src_value[_Ref] = [target_value, target_ptr, target_patch]
 
                 # referenced content should also be processed
                 url_handler_items.append(
@@ -318,64 +299,51 @@ class Loader:
                         target_handler,
                         iter(
                             traverse(
-                                target_value,
+                                src_value,
                                 leafs=False,
                                 lists=False,
-                                parent=traverse_parent,
-                                key=traverse_key,
+                                parent=src_parent,
+                                key=src_key,
                                 pointer_type=target_handler.pointer_type,
                             ),
                         ),
                     ),
                 )
-            except StopIteration:
-                url_handler_items.pop()
+                continue
 
-        # replace references and patch if needed
-        for ptr, parent, key, value in traverse(
+            # previously visited reference
+            src_ref = src_value.get(_Ref, None)
+            if src_ref is not None:
+                value: Value
+                ptr: Pointer | None
+                patch: Patch | None
+                value, ptr, patch = src_ref
+                if ptr:
+                    value = ptr.resolve(value)
+                    src_ref[0] = value
+                    src_ref[1] = None
+                if id(value) == id(src_value):
+                    msg = f"A reference cannot point to itself ({target_url}#{ptr})."
+                    raise DecodeError(msg)
+                if patch is not None:
+                    src_value = copy.deepcopy(src_value)
+                    src_ref = src_value[_Ref]
+                    value, _, patch = src_ref
+                    value = patch.apply(value, in_place=True)
+                    src_ref[2] = None
+                src_parent[src_key] = value
+
+        # handle patched circular references
+        for _, parent, key, child in traverse(
             result[0],
             leafs=False,
             lists=False,
             parent=result,
             key=0,
-            pointer_type=handler.pointer_type,
         ):
-            if _Ref in value:
-                src_handler: BaseHandler
-                src_value: Value
-                src_ptr: Pointer
-                src_handler, src_value, src_ptr = value[_Ref]
-                replacement = src_ptr.resolve(src_value)
-                if len(value) > 1:
-                    # avoid circular reference patching
-                    if check_circular and any(
-                        _Ref in child
-                        for _, _, _, child in traverse(
-                            replacement,
-                            leafs=False,
-                            lists=False,
-                        )
-                    ):
-                        msg = f"A circular reference cannot be patched ({ptr})."
-                        raise DecodeError(msg)
-                    patch = Patch(
-                        value["$patch"] if "$patch" in value else [],
-                        src_handler.pointer_type,
-                    )
-                    del value[_Ref]
-                    if "$patch" in value:
-                        del value["$patch"]
-                    for patch_key, patch_value in value.items():
-                        patch.add("=", patch_key, patch_value)
-                    replacement = patch.apply(replacement)
-                    # prepare patched value for other references
-                    value.clear()
-                    value[_Ref] = [
-                        src_handler,
-                        replacement,
-                        src_handler.pointer_type(),
-                    ]
-                parent[key] = replacement
+            ref = child.get(_Ref, None)
+            if ref is not None:
+                parent[key] = ref[0]
 
         return result[0]
 
@@ -396,3 +364,12 @@ class Loader:
         except urllib.error.URLError as error:
             msg = f'Error loading "{url}".'
             raise DecodeError(msg) from error
+
+
+def _build_patch(value: Value, pointer_type: type[Pointer]) -> Patch | None:
+    if value:
+        patch = Patch(value.pop("$patch", None), pointer_type)
+        for patch_key, patch_value in value.items():
+            patch.add(PatchOperation.ASSIGN, patch_key, patch_value)
+        return patch
+    return None

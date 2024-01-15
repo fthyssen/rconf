@@ -78,6 +78,8 @@ is a `URL <https://datatracker.ietf.org/doc/html/rfc3986>`_ with an optional
 that follows the representation of the referent document:
 a JSON or TOML pointer.
 
+Reference resolution is applied depth-first.
+
 
 Example
 ------------------------------------------------------------------------
@@ -174,20 +176,13 @@ Shorthand operation arrays each consist of
 
 The ``$patch`` array can contain a mix of
 operation objects and shorthand operation arrays.
-
 ``$patch``-array operations are applied in order of appearance,
 before any key/value-pair assignment.
 
 Failing tests will raise an exception [#patch-test]_.
 
-
-Limitations
-------------------------------------------------------------------------
-
-- Patches for circular references are not allowed.
-- This implementation doesn't support
-  :ref:`patching reference URLs <rconf-definitions-patched_ref>`
-  (the ``$ref`` value).
+A patch is applied immediately after dereferencing
+the corresponding reference.
 
 
 Example
@@ -227,45 +222,15 @@ Definition implications
 
 - Circular references are allowed,
   but references cannot point to themselves.
+- Because references are resolved, and patches applied, depth-first,
+  a ``$ref`` value can never be patched.
 - Key/value-pair assignments may be applied out of order
   [#key-value-order]_,
-  so they shouldn't be relied upon for patches
-  requiring order preservation.
+  so they shouldn't be relied upon if patch order is of importance.
 - Key/value-pair assignment allows only
   one replacement per *path* [#key-value-unique]_.
 - A :func:`copy.deepcopy` is applied
   for reference substitution with patches.
-
-
-.. _rconf-definitions-patched_ref:
-
-Patching reference URLs
-------------------------------------------------------------------------
-
-In this implementation,
-all patches are applied after (partial) reference resolution.
-As a consequence, ``$ref`` values (the URLs) cannot be patched,
-even if they are references themselves.
-
-This is not detected automatically and no warnings are raised.
-
-.. tab-set-code::
-
-    .. literalinclude:: ./snippets/definitions/patched-reference.toml
-        :language: toml
-
-    .. literalinclude:: ./snippets/definitions/patched-reference.json
-        :language: json
-
-Result
-
-.. tab-set-code::
-
-    .. literalinclude:: ../_build/snippets/definitions/patched-reference.toml
-        :language: toml
-
-    .. literalinclude:: ../_build/snippets/definitions/patched-reference.json
-        :language: json
 
 
 .. [#array-indices] Zero-based base-10 integers

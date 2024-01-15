@@ -140,7 +140,6 @@ def load(
     url: str | pathlib.Path | None = None,
     *,
     ptr: str | None = None,
-    check_circular: bool = True,
     **kwargs,
 ) -> Value:
     """Decode a ``read``-supporting :term:`binary file` with references and patches.
@@ -153,7 +152,6 @@ def load(
     :param url: Assumed document URL or path
         for media type, fragment and relative reference resolution.
     :param ptr: Fragment pointer, overrides URL fragment.
-    :param check_circular: Verify that no circular references are patched.
     :param kwargs: Forwarded to :class:`rconf.decode.DecoderDirector`.
 
     :raises: :class:`rconf.decode.DecodeError` in case of decode errors,
@@ -164,7 +162,6 @@ def load(
         media_type,
         url,
         ptr=ptr,
-        check_circular=check_circular,
         **kwargs,
     )
 
@@ -175,7 +172,6 @@ def loads(
     url: str | pathlib.Path | None = None,
     *,
     ptr: str | None = None,
-    check_circular: bool = True,
     **kwargs,
 ) -> Value:
     """Decode a :class:`str` configuration document with references and patches.
@@ -188,7 +184,6 @@ def loads(
     :param url: Assumed document URL or path
         for media type, fragment and relative reference resolution.
     :param ptr: Fragment pointer, overrides URL fragment.
-    :param check_circular: Verify that no circular references are patched.
     :param kwargs: Forwarded to :class:`rconf.decode.DecoderDirector`.
 
     :raises: :class:`rconf.decode.DecodeError` in case of decode errors,
@@ -199,7 +194,6 @@ def loads(
         media_type,
         url,
         ptr=ptr,
-        check_circular=check_circular,
         **kwargs,
     )
 
@@ -210,7 +204,6 @@ def loadc(
     url: str | pathlib.Path | None = None,
     *,
     ptr: str | None = None,
-    check_circular: bool = True,
     **kwargs,
 ) -> Value:
     """Decode a configuration document with references and patches.
@@ -223,7 +216,6 @@ def loadc(
     :param url: Assumed document URL or path
         for media type, fragment and relative reference resolution.
     :param ptr: Fragment pointer, overrides URL fragment.
-    :param check_circular: Verify that no circular references are patched.
     :param kwargs: Forwarded to :class:`rconf.decode.DecoderDirector`.
 
     :raises: :class:`rconf.decode.DecodeError` in case of decode errors,
@@ -234,7 +226,6 @@ def loadc(
         media_type,
         url,
         ptr=ptr,
-        check_circular=check_circular,
         **kwargs,
     )
 
@@ -245,7 +236,6 @@ def loadu(
     *,
     base_url: str | pathlib.Path | None = None,
     ptr: str | None = None,
-    check_circular: bool = True,
     **kwargs,
 ) -> Value:
     """Decode a configuration document at a URL or path with references and patches.
@@ -260,7 +250,6 @@ def loadu(
     :param base_url: Assumed document URL or path
         for relative reference resolution, overrides URL base.
     :param ptr: Fragment pointer, overrides URL fragment.
-    :param check_circular: Verify that no circular references are patched.
     :param kwargs: Forwarded to :class:`rconf.decode.DecoderDirector`.
 
     :raises: :class:`rconf.decode.DecodeError` in case of decode errors,
@@ -271,7 +260,6 @@ def loadu(
         media_type,
         base_url=base_url,
         ptr=ptr,
-        check_circular=check_circular,
         **kwargs,
     )
 

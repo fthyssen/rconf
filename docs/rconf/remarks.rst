@@ -28,7 +28,7 @@ results in
 .. literalinclude:: ../_build/snippets/remarks/partial.py.stdout
 
 
-Circular references without patches
+Circular references
 ------------------------------------------------------------------------
 
 Circular references are allowed,
@@ -41,20 +41,6 @@ won't be able to dump them:
 results in
 
 .. literalinclude:: ../_build/snippets/remarks/circular.py.stdout
-
-
-Circular reference with patches
-------------------------------------------------------------------------
-
-As mentioned in :ref:`rconf-definitions`,
-patching a circular reference is not allowed:
-
-.. literalinclude:: ./snippets/remarks/circular-patch.py
-  :language: python
-
-results in
-
-.. literalinclude:: ../_build/snippets/remarks/circular-patch.py.stdout
 
 
 Known issues
